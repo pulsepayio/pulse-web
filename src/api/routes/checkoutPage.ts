@@ -178,14 +178,21 @@ apiRouter.get('/wallets/:sessionId/:currency', async (req: Request, res: Respons
 
 apiRouter.post('/test-confirm/:sessionId', async (req: Request, res: Response) => {
   try {
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      res.status(400).json({ error: { message: 'Email required in body' } });
+      return;
+    }
+
     const session = await prisma.checkoutSession.findUnique({
       where: { pulseId: req.params.sessionId },
-      include: { cryptoPayment: true },
+      include: { cryptoPayment: true, product: true },
     });
     if (!session) {
       res.status(404).json({ error: { message: 'Session not found' } });
       return;
     }
+
     if (session.cryptoPayment) {
       await prisma.cryptoPayment.update({
         where: { id: session.cryptoPaymentId! },
@@ -194,9 +201,11 @@ apiRouter.post('/test-confirm/:sessionId', async (req: Request, res: Response) =
     }
     await prisma.checkoutSession.update({
       where: { id: session.id },
-      data: { status: 'confirmed', completedAt: new Date() },
+      data: { status: 'confirmed', completedAt: new Date(), buyerEmail: email.toLowerCase().trim() },
     });
-    res.json({ ok: true, message: 'Session confirmed' });
+
+    const items = session.product?.deliveryItems ? JSON.parse(session.product.deliveryItems) : [];
+    res.json({ ok: true, message: 'Session confirmed', email, delivery_items: items });
   } catch (error) {
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
