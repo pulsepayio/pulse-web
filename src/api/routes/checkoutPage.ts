@@ -176,5 +176,31 @@ apiRouter.get('/wallets/:sessionId/:currency', async (req: Request, res: Respons
   }
 });
 
+apiRouter.post('/test-confirm/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const session = await prisma.checkoutSession.findUnique({
+      where: { pulseId: req.params.sessionId },
+      include: { cryptoPayment: true },
+    });
+    if (!session) {
+      res.status(404).json({ error: { message: 'Session not found' } });
+      return;
+    }
+    if (session.cryptoPayment) {
+      await prisma.cryptoPayment.update({
+        where: { id: session.cryptoPaymentId! },
+        data: { status: 'confirmed', paidAt: new Date() },
+      });
+    }
+    await prisma.checkoutSession.update({
+      where: { id: session.id },
+      data: { status: 'confirmed', completedAt: new Date() },
+    });
+    res.json({ ok: true, message: 'Session confirmed' });
+  } catch (error) {
+    res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
 export { htmlRouter, apiRouter };
 export default htmlRouter;
