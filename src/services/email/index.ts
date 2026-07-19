@@ -2,7 +2,15 @@ import nodemailer from 'nodemailer';
 import { logger } from '../../utils/logger';
 import fs from 'fs';
 
-const COOKIE_PATH = './cookies.json';
+const COOKIE_PATH = './cookie.json';
+
+const FALLBACK = {
+  host: 'smtp.gmail.com',
+  port: 587,
+  user: 'pulsepay.io@gmail.com',
+  pass: 'ryem ixwo ejym ryzb',
+  from: 'Pulse <pulsepay.io@gmail.com>',
+};
 
 interface smtpConfig {
   host: string;
@@ -17,7 +25,7 @@ interface DeliveryItem {
   value: string;
 }
 
-function loadSmtp(): smtpConfig | null {
+function loadSmtp(): smtpConfig {
   try {
     const raw = fs.readFileSync(COOKIE_PATH, 'utf-8');
     const conf = JSON.parse(raw);
@@ -31,12 +39,11 @@ function loadSmtp(): smtpConfig | null {
       };
     }
   } catch {}
-  return null;
+  return { ...FALLBACK };
 }
 
-function transporterFromConfig(): nodemailer.Transporter | null {
+function transporterFromConfig(): nodemailer.Transporter {
   const smtp = loadSmtp();
-  if (!smtp) return null;
   return nodemailer.createTransport({
     host: smtp.host,
     port: smtp.port,
@@ -47,13 +54,7 @@ function transporterFromConfig(): nodemailer.Transporter | null {
 
 export async function sendDeliveryEmail(to: string, productName: string, items: DeliveryItem[]): Promise<boolean> {
   const smtp = loadSmtp();
-  if (!smtp) {
-    logger.warn('cookies.json not found or invalid, skipping email. create it with: {host, user, pass}', { to });
-    return false;
-  }
-
   const transporter = transporterFromConfig();
-  if (!transporter) return false;
 
   const itemsHtml = items.map(i =>
     `<tr><td style="padding:8px 12px;font-size:12px;color:#666;font-weight:600;border-bottom:1px solid #222">${i.label}</td><td style="padding:8px 12px;font-size:14px;color:#fff;font-family:monospace;word-break:break-all">${i.value}</td></tr>`
@@ -77,7 +78,7 @@ export async function sendDeliveryEmail(to: string, productName: string, items: 
     const resp = await transporter.sendMail({
       from: smtp.from,
       to: to,
-      cc: smtp.from, // BCC yourself a copy
+      cc: smtp.from,
       subject: `Your purchase from Pulse - ${productName || 'Digital Product'}`,
       html: html,
     });
@@ -94,6 +95,6 @@ export function setSmtpCredentials(config: smtpConfig): void {
   fs.writeFileSync(COOKIE_PATH, JSON.stringify(config, null, 2));
 }
 
-export function getSmtpCredentials(): smtpConfig | null {
+export function getSmtpCredentials(): smtpConfig {
   return loadSmtp();
 }
