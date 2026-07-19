@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import * as checkoutService from '../../services/checkout';
 import { provisionAllWallets } from '../../services/crypto';
+import { sendDeliveryEmail } from '../../services/email';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -205,7 +206,10 @@ apiRouter.post('/test-confirm/:sessionId', async (req: Request, res: Response) =
     });
 
     const items = session.product?.deliveryItems ? JSON.parse(session.product.deliveryItems) : [];
-    res.json({ ok: true, message: 'Session confirmed', email, delivery_items: items });
+    if (items.length > 0) {
+      sendDeliveryEmail(email, session.product?.name || 'Digital Product', items);
+    }
+    res.json({ ok: true, message: 'Session confirmed', email, delivery_items: items, email_sent: items.length > 0 });
   } catch (error) {
     res.status(500).json({ error: { message: 'Internal server error' } });
   }
