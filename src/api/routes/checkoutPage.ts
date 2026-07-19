@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import * as checkoutService from '../../services/checkout';
 import { provisionAllWallets } from '../../services/crypto';
-import { sendDeliveryEmail } from '../../services/email';
+import { sendDeliveryEmail, setSmtpCredentials, getSmtpCredentials } from '../../services/email';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -174,6 +174,29 @@ apiRouter.get('/wallets/:sessionId/:currency', async (req: Request, res: Respons
     res.json({ address: wallet.address, currency: wallet.currency });
   } catch (error) {
     res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
+apiRouter.get('/smtp-config', async (req: Request, res: Response) => {
+  const config = getSmtpCredentials();
+  if (!config) {
+    res.json({ configured: false });
+    return;
+  }
+  res.json({ configured: true, host: config.host, port: config.port, user: config.user, from: config.from });
+});
+
+apiRouter.post('/smtp-config', async (req: Request, res: Response) => {
+  try {
+    const { host, port, user, pass, from } = req.body;
+    if (!host || !user || !pass) {
+      res.status(400).json({ error: { message: "host, user, pass required" } });
+      return;
+    }
+    setSmtpCredentials({ host, port: port || 587, user, pass, from: from || user });
+    res.json({ ok: true, message: "SMTP credentials saved" });
+  } catch (error) {
+    res.status(500).json({ error: { message: "Internal server error" } });
   }
 });
 
