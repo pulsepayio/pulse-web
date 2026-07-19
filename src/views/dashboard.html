@@ -148,7 +148,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 
 <script>
 var T=localStorage.getItem('pulse_token'),K=localStorage.getItem('pulse_api_key'),tab='overview';
-function api(m,p,b){var o={method:m,headers:{'Content-Type':'application/json'}};if(T)o.headers['Authorization']='Bearer '+T;if(K)o.headers['X-Pulse-Api-Key']=K;if(b)o.body=JSON.stringify(b);return fetch('/v1'+p,o).then(function(r){return r.json().then(function(d){if(!r.ok)throw d;return d})})}
+function api(m,p,b){var o={method:m,headers:{'Content-Type':'application/json'}};if(T)o.headers['Authorization']='Bearer '+T;if(K)o.headers['X-Pulse-Api-Key']=K;if(b)o.body=JSON.stringify(b);return fetch('/v1'+p,o).then(function(r){if(r.status===401){signOut();throw{error:{message:'Session expired'}}}return r.json().then(function(d){if(!r.ok)throw d;return d})})}
 function $(id){return document.getElementById(id)}
 function fmt(c){if(!c&&c!==0)return'$0.00';return'$'+(c/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
 function fDate(d){if(!d)return'-';return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
