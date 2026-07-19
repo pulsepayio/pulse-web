@@ -12,6 +12,28 @@ const apiRouter = Router();
 const templatePath = path.join(__dirname, '../../../src/views/checkout.html');
 const template = fs.readFileSync(templatePath, 'utf-8');
 
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 30;
+
+function rateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rateLimitMap) {
+    if (now > val.resetAt) rateLimitMap.delete(key);
+  }
+}, 60_000);
+
 // GET /checkout/:id - serve hosted checkout page (public, no auth)
 htmlRouter.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -55,12 +77,75 @@ htmlRouter.get('/:id', async (req: Request, res: Response) => {
 // GET /session/:id - JSON API for checkout data (used by the page's JS)
 apiRouter.get('/session/:id', async (req: Request, res: Response) => {
   try {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!rateLimit(ip)) {
+      res.status(429).json({ error: { message: 'Rate limit exceeded' } });
+      return;
+    }
+
     const session = await checkoutService.getCheckoutSession(req.params.id);
     if (!session) {
       res.status(404).json({ error: { message: 'Session not found' } });
       return;
     }
     res.json(session);
+  } catch (error) {
+    res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
+// POST /session/:id/email - store buyer email with the checkout session
+apiRouter.post('/session/:id/email', async (req: Request, res: Response) => {
+  try {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!rateLimit(ip)) {
+      res.status(429).json({ error: { message: 'Rate limit exceeded' } });
+      return;
+    }
+
+    const { email } = req.body;
+    if (!email || !email.includes('@') || email.length > 254) {
+      res.status(400).json({ error: { message: 'Valid email required' } });
+      return;
+    }
+
+    const ok = await checkoutService.setBuyerEmail(req.params.id, email);
+    if (!ok) {
+      res.status(404).json({ error: { message: 'Session not found or not open' } });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: { message: 'Internal server error' } });
+  }
+});
+
+// POST /session/:id/deliver - get delivery items (requires email match + confirmed payment)
+apiRouter.post('/session/:id/deliver', async (req: Request, res: Response) => {
+  try {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!rateLimit(ip)) {
+      res.status(429).json({ error: { message: 'Rate limit exceeded' } });
+      return;
+    }
+
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      res.status(400).json({ error: { message: 'Email required' } });
+      return;
+    }
+
+    const data = await checkoutService.getDeliveryData(req.params.id, email);
+    if (!data) {
+      res.status(403).json({ error: { message: 'Payment not confirmed or email does not match' } });
+      return;
+    }
+
+    res.json({
+      items: data.items,
+      _delivery_token: data.deliveryToken,
+      _delivery_expires: data.deliveryExpires,
+    });
   } catch (error) {
     res.status(500).json({ error: { message: 'Internal server error' } });
   }

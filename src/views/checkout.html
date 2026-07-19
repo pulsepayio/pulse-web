@@ -187,6 +187,7 @@ function selectCurrency(code) {
   var emailInput=document.getElementById('buyerEmail');
   if(!emailInput||!emailInput.value||!emailInput.value.includes('@')){emailInput.style.borderColor='#ef4444';emailInput.focus();return;}
   emailInput.style.borderColor='#333';
+  var buyerEmail=emailInput.value.trim().toLowerCase();
   selected = CURRENCIES.find(function(c){return c.code===code});
   if(!selected) return;
   var price = RATES[code]||1;
@@ -201,6 +202,7 @@ function selectCurrency(code) {
   document.getElementById('step2').classList.add('active');
   renderQR(SESSION.crypto_payment.deposit_address);
   startTimer(new Date(SESSION.expires_at).getTime());
+  fetch('/api/checkout-data/session/'+SESSION_ID+'/email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:buyerEmail})}).catch(function(){});
   fetch('/api/checkout-data/wallets/'+SESSION_ID+'/'+code).then(function(r){return r.json()}).then(function(w){
     if(w.address){
       SESSION._currentAddress=w.address;
@@ -212,7 +214,7 @@ function selectCurrency(code) {
   }).catch(function(){
     document.getElementById('depositAddress').textContent=SESSION.crypto_payment.deposit_address;
   });
-  pollStatus();
+  pollStatus(buyerEmail);
 }
 
 function goBack() {
@@ -241,27 +243,31 @@ function startTimer(end) {
   tick();timerInterval=setInterval(tick,1000);
 }
 
-function pollStatus() {
+function pollStatus(buyerEmail) {
   if(pollInterval)clearInterval(pollInterval);
   pollInterval=setInterval(function(){
     fetch('/api/checkout-data/session/'+SESSION_ID).then(function(r){return r.json()}).then(function(data){
       if(data.crypto_payment&&data.crypto_payment.status==='confirmed'){
         clearInterval(pollInterval);
-        var html='<div style="text-align:center;padding:20px 0"><div style="font-size:48px;margin-bottom:12px">&#10003;</div><div style="font-size:18px;font-weight:700;color:#22c55e;margin-bottom:6px">Payment Confirmed</div><div style="font-size:13px;color:#666">Your payment of '+document.getElementById('payCryptoAmount').textContent+' has been confirmed on-chain.</div>';
-        var items=data.delivery_items||[];
-        if(items.length){
-          html+='<div style="margin-top:24px;text-align:left;background:#1a1a2e;border:1px solid #2a2a2a;border-radius:12px;padding:18px 20px">';
-          html+='<div style="font-size:11px;color:#8b5cf6;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:14px">Your delivery</div>';
-          items.forEach(function(item){
-            html+='<div style="margin-bottom:12px">';
-            html+='<div style="font-size:11px;color:#666;margin-bottom:3px;font-weight:600">'+item.label+'</div>';
-            html+='<div style="font-size:14px;color:#fff;word-break:break-all;font-family:\'SF Mono\',monospace;background:#111;padding:8px 12px;border-radius:8px;border:1px solid #333">'+item.value+'</div>';
+        fetch('/api/checkout-data/session/'+SESSION_ID+'/deliver',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:buyerEmail})}).then(function(r){return r.json()}).then(function(del){
+          var html='<div style="text-align:center;padding:20px 0"><div style="font-size:48px;margin-bottom:12px">&#10003;</div><div style="font-size:18px;font-weight:700;color:#22c55e;margin-bottom:6px">Payment Confirmed</div><div style="font-size:13px;color:#666">Your payment of '+document.getElementById('payCryptoAmount').textContent+' has been confirmed on-chain.</div>';
+          var items=(del&&del.items)||[];
+          if(items.length){
+            html+='<div style="margin-top:24px;text-align:left;background:#1a1a2e;border:1px solid #2a2a2a;border-radius:12px;padding:18px 20px">';
+            html+='<div style="font-size:11px;color:#8b5cf6;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:14px">Your delivery</div>';
+            items.forEach(function(item){
+              html+='<div style="margin-bottom:12px">';
+              html+='<div style="font-size:11px;color:#666;margin-bottom:3px;font-weight:600">'+item.label+'</div>';
+              html+='<div style="font-size:14px;color:#fff;word-break:break-all;font-family:\'SF Mono\',monospace;background:#111;padding:8px 12px;border-radius:8px;border:1px solid #333">'+item.value+'</div>';
+              html+='</div>';
+            });
             html+='</div>';
-          });
-          html+='</div>';
-        }
-        html+='<div style="margin-top:20px;font-size:12px;color:#444">You can close this page.</div></div>';
-        document.getElementById('step2').innerHTML=html;
+          }
+          html+='<div style="margin-top:20px;font-size:12px;color:#444">You can close this page.</div></div>';
+          document.getElementById('step2').innerHTML=html;
+        }).catch(function(){
+          document.getElementById('step2').innerHTML='<div style="text-align:center;padding:20px 0"><div style="font-size:48px;margin-bottom:12px">&#10003;</div><div style="font-size:18px;font-weight:700;color:#22c55e;margin-bottom:6px">Payment Confirmed</div><div style="font-size:13px;color:#666">Payment confirmed. Please check your email for delivery details.</div></div>';
+        });
       }
     }).catch(function(){});
   },5000);

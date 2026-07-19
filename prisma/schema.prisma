@@ -346,6 +346,7 @@ model CheckoutSession {
   cancelUrl         String?  @map("cancel_url")
   metadata          String?
 
+  buyerEmail        String?  @map("buyer_email")
   status            String   @default("open")
   expiresAt         DateTime @map("expires_at")
   completedAt       DateTime? @map("completed_at")

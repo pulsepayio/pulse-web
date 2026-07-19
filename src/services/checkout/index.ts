@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../../utils/logger';
 import { generateId } from '../../utils/ids';
+import { generateDeliveryToken, verifyDeliveryToken } from '../../utils/hmac';
 import * as cryptoService from '../crypto';
 import type { CryptoCurrency } from '../crypto';
 
@@ -109,7 +110,7 @@ export async function getCheckoutSession(pulseId: string) {
     expires_at: session.expiresAt.toISOString(),
     completed_at: session.completedAt?.toISOString() || null,
     product_name: session.product?.name || null,
-    delivery_items: session.product?.deliveryItems ? JSON.parse(session.product.deliveryItems) : [],
+    buyer_email: session.buyerEmail || null,
     crypto_payment: session.cryptoPayment
       ? {
           id: session.cryptoPayment.pulseId,
@@ -139,6 +140,35 @@ export async function expireCheckoutSession(pulseId: string) {
   });
 
   logger.info('Checkout session expired', { pulseId });
+}
+
+export async function setBuyerEmail(pulseId: string, email: string): Promise<boolean> {
+  const session = await prisma.checkoutSession.findUnique({ where: { pulseId } });
+  if (!session || session.status !== 'open') return false;
+  await prisma.checkoutSession.update({ where: { id: session.id }, data: { buyerEmail: email.toLowerCase().trim() } });
+  return true;
+}
+
+export async function getDeliveryData(pulseId: string, email: string): Promise<{ items: any[]; deliveryToken: string; deliveryExpires: number } | null> {
+  const session = await prisma.checkoutSession.findUnique({
+    where: { pulseId },
+    include: { cryptoPayment: true, product: true },
+  });
+  if (!session) return null;
+  if (!session.buyerEmail) return null;
+  if (session.buyerEmail !== email.toLowerCase().trim()) return null;
+  if (!session.cryptoPayment || session.cryptoPayment.status !== 'confirmed') return null;
+  if (!session.product?.deliveryItems) return null;
+
+  const items = JSON.parse(session.product.deliveryItems);
+  const { token, expiresAt } = generateDeliveryToken(pulseId, email, 60);
+
+  logger.info('Delivery data issued', { pulseId, email: email.substring(0, 3) + '***' });
+  return { items, deliveryToken: token, deliveryExpires: expiresAt };
+}
+
+export function verifyDeliveryData(pulseId: string, email: string, token: string, expiresAt: number): boolean {
+  return verifyDeliveryToken(pulseId, email, expiresAt, token);
 }
 
 export async function listCheckoutSessions(
