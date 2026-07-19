@@ -30,24 +30,20 @@ export async function authenticate(
     // API Key authentication
     if (apiKeyHeader) {
       const apiKey = apiKeyHeader.replace('Bearer ', '');
-      // Look up by hashed API key - for simplicity, we compare against stored key prefix
-      // In production, hash and compare
       const user = await prisma.user.findFirst({
         where: { apiKey: { startsWith: apiKey.substring(0, 8) } },
       });
 
-      if (!user) {
-        throw new AuthenticationError();
+      if (user) {
+        req.userId = user.id;
+        req.user = {
+          id: user.id,
+          email: user.email,
+          businessName: user.businessName,
+          livemode: user.livemode,
+        };
+        return next();
       }
-
-      req.userId = user.id;
-      req.user = {
-        id: user.id,
-        email: user.email,
-        businessName: user.businessName,
-        livemode: user.livemode,
-      };
-      return next();
     }
 
     // JWT authentication
@@ -55,24 +51,26 @@ export async function authenticate(
       const token = authHeader.substring(7);
       const config = getConfig();
 
-      const decoded = jwt.verify(token, config.jwtSecret) as JWTPayload;
+      try {
+        const decoded = jwt.verify(token, config.jwtSecret) as JWTPayload;
 
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-      });
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+        });
 
-      if (!user) {
-        throw new AuthenticationError();
+        if (user) {
+          req.userId = user.id;
+          req.user = {
+            id: user.id,
+            email: user.email,
+            businessName: user.businessName,
+            livemode: user.livemode,
+          };
+          return next();
+        }
+      } catch (e) {
+        // JWT invalid, continue to error
       }
-
-      req.userId = user.id;
-      req.user = {
-        id: user.id,
-        email: user.email,
-        businessName: user.businessName,
-        livemode: user.livemode,
-      };
-      return next();
     }
 
     throw new AuthenticationError('No authentication credentials provided');
