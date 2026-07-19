@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Pulse</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .checkout {
+      max-width: 440px;
+      width: 100%;
+      padding: 40px;
+      background: #111;
+      border-radius: 16px;
+      border: 1px solid #222;
+    }
+    .header { text-align: center; margin-bottom: 32px; }
+    .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: #8b5cf6; margin-bottom: 8px; }
+    .amount-section { text-align: center; margin-bottom: 32px; }
+    .amount-crypto { font-size: 36px; font-weight: 700; letter-spacing: -1px; margin-bottom: 4px; }
+    .amount-usd { font-size: 16px; color: #888; }
+    .currency-badge {
+      display: inline-block; padding: 4px 12px; background: #1a1a2e;
+      border-radius: 20px; font-size: 13px; font-weight: 600; color: #8b5cf6; margin-top: 8px;
+    }
+    .qr-section { display: flex; justify-content: center; margin-bottom: 24px; }
+    .qr-box {
+      background: #fff; border-radius: 12px; padding: 16px; width: 232px; height: 232px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .qr-box svg { width: 200px; height: 200px; }
+    .address-box {
+      background: #1a1a1a; border: 1px solid #333; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .address-text {
+      flex: 1; font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px; color: #ccc; word-break: break-all; line-height: 1.5;
+    }
+    .copy-btn {
+      background: #8b5cf6; border: none; color: #fff; padding: 8px 14px;
+      border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+      white-space: nowrap; transition: background 0.2s;
+    }
+    .copy-btn:hover { background: #7c3aed; }
+    .timer-section { text-align: center; margin-bottom: 24px; }
+    .timer-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .timer { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: #fff; }
+    .timer.urgent { color: #ef4444; }
+    .rate-info { text-align: center; font-size: 13px; color: #555; margin-bottom: 24px; }
+    .instructions { background: #1a1a2e; border-radius: 10px; padding: 16px; margin-bottom: 24px; }
+    .instructions h3 { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #8b5cf6; }
+    .instructions ol { padding-left: 18px; font-size: 13px; color: #aaa; line-height: 1.8; }
+    .status-bar { text-align: center; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 600; }
+    .status-bar.pending { background: #1a2e1a; color: #22c55e; border: 1px solid #166534; }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(34,197,94,0.3); border-top-color: #22c55e;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-right: 8px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .powered-by { text-align: center; font-size: 11px; color: #444; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="checkout">
+    <div class="header"><div class="logo">Pulse</div></div>
+    <div class="amount-section">
+      <div class="amount-crypto">8.52 TON</div>
+      <div class="amount-usd">≈ $50.00 USD</div>
+      <div class="currency-badge">TON</div>
+    </div>
+    <div class="qr-section">
+      <div class="qr-box">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <!-- QR code pattern (placeholder) -->
+          <rect width="200" height="200" fill="#fff"/>
+          <g fill="#000">
+            <!-- Position detection patterns -->
+            <rect x="10" y="10" width="50" height="50" rx="4"/>
+            <rect x="14" y="14" width="42" height="42" rx="2" fill="#fff"/>
+            <rect x="18" y="18" width="34" height="34" rx="2" fill="#000"/>
+            <rect x="22" y="22" width="26" height="26" rx="1" fill="#fff"/>
+            <rect x="26" y="26" width="18" height="18" rx="1" fill="#000"/>
+
+            <rect x="140" y="10" width="50" height="50" rx="4"/>
+            <rect x="144" y="14" width="42" height="42" rx="2" fill="#fff"/>
+            <rect x="148" y="18" width="34" height="34" rx="2" fill="#000"/>
+            <rect x="152" y="22" width="26" height="26" rx="1" fill="#fff"/>
+            <rect x="156" y="26" width="18" height="18" rx="1" fill="#000"/>
+
+            <rect x="10" y="140" width="50" height="50" rx="4"/>
+            <rect x="14" y="144" width="42" height="42" rx="2" fill="#fff"/>
+            <rect x="18" y="148" width="34" height="34" rx="2" fill="#000"/>
+            <rect x="22" y="152" width="26" height="26" rx="1" fill="#fff"/>
+            <rect x="26" y="156" width="18" height="18" rx="1" fill="#000"/>
+
+            <!-- Data pattern rows -->
+            <rect x="70" y="10" width="8" height="8"/>
+            <rect x="86" y="10" width="8" height="8"/>
+            <rect x="102" y="10" width="8" height="8"/>
+            <rect x="118" y="10" width="8" height="8"/>
+
+            <rect x="70" y="26" width="8" height="8"/>
+            <rect x="102" y="26" width="8" height="8"/>
+
+            <rect x="86" y="42" width="8" height="8"/>
+            <rect x="118" y="42" width="8" height="8"/>
+
+            <rect x="70" y="58" width="8" height="8"/>
+            <rect x="102" y="58" width="8" height="8"/>
+            <rect x="118" y="58" width="8" height="8"/>
+
+            <rect x="10" y="70" width="8" height="8"/>
+            <rect x="26" y="70" width="8" height="8"/>
+            <rect x="42" y="70" width="8" height="8"/>
+            <rect x="70" y="70" width="8" height="8"/>
+            <rect x="86" y="70" width="8" height="8"/>
+            <rect x="102" y="70" width="8" height="8"/>
+            <rect x="140" y="70" width="8" height="8"/>
+            <rect x="156" y="70" width="8" height="8"/>
+            <rect x="172" y="70" width="8" height="8"/>
+
+            <rect x="10" y="86" width="8" height="8"/>
+            <rect x="42" y="86" width="8" height="8"/>
+            <rect x="70" y="86" width="8" height="8"/>
+            <rect x="118" y="86" width="8" height="8"/>
+            <rect x="156" y="86" width="8" height="8"/>
+
+            <rect x="26" y="102" width="8" height="8"/>
+            <rect x="42" y="102" width="8" height="8"/>
+            <rect x="86" y="102" width="8" height="8"/>
+            <rect x="102" y="102" width="8" height="8"/>
+            <rect x="140" y="102" width="8" height="8"/>
+            <rect x="172" y="102" width="8" height="8"/>
+
+            <rect x="10" y="118" width="8" height="8"/>
+            <rect x="26" y="118" width="8" height="8"/>
+            <rect x="58" y="118" width="8" height="8"/>
+            <rect x="86" y="118" width="8" height="8"/>
+            <rect x="118" y="118" width="8" height="8"/>
+            <rect x="156" y="118" width="8" height="8"/>
+
+            <rect x="70" y="140" width="8" height="8"/>
+            <rect x="86" y="140" width="8" height="8"/>
+            <rect x="118" y="140" width="8" height="8"/>
+            <rect x="140" y="140" width="8" height="8"/>
+            <rect x="172" y="140" width="8" height="8"/>
+
+            <rect x="70" y="156" width="8" height="8"/>
+            <rect x="102" y="156" width="8" height="8"/>
+            <rect x="140" y="156" width="8" height="8"/>
+            <rect x="172" y="156" width="8" height="8"/>
+
+            <rect x="86" y="172" width="8" height="8"/>
+            <rect x="102" y="172" width="8" height="8"/>
+            <rect x="118" y="172" width="8" height="8"/>
+            <rect x="156" y="172" width="8" height="8"/>
+
+            <rect x="70" y="186" width="8" height="8"/>
+            <rect x="102" y="186" width="8" height="8"/>
+            <rect x="140" y="186" width="8" height="8"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="address-box">
+      <div class="address-text">EQBxK-4yAuGFM5pOzgFm_KzOwJb19CllyFLHpnF2pFYapQJ-</div>
+      <button class="copy-btn" onclick="copyAddress()">Copy</button>
+    </div>
+    <div class="timer-section">
+      <div class="timer-label">Expires in</div>
+      <div class="timer" id="timer">29:59</div>
+    </div>
+    <div class="rate-info">1 TON ≈ $5.87 USD</div>
+    <div class="instructions">
+      <h3>How to pay</h3>
+      <ol>
+        <li>Copy the deposit address above</li>
+        <li>Open your wallet and send the exact amount</li>
+        <li>Wait for blockchain confirmation</li>
+      </ol>
+    </div>
+    <div class="status-bar pending">
+      <span class="spinner"></span> Waiting for payment...
+    </div>
+    <div class="powered-by">Powered by Pulse</div>
+  </div>
+  <script>
+    let secs = 1799;
+    setInterval(() => {
+      if (secs <= 0) return;
+      secs--;
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      const el = document.getElementById('timer');
+      el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      el.classList.toggle('urgent', secs < 300);
+    }, 1000);
+    function copyAddress() {
+      navigator.clipboard.writeText('EQBxK-4yAuGFM5pOzgFm_KzOwJb19CllyFLHpnF2pFYapQJ-').then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ── Users & Auth ──────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  businessName  String?   @map("business_name")
+  apiKey        String    @unique @map("api_key")
+  apiKeyHash    String    @unique @map("api_key_hash")
+  livemode      Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  customers     Customer[]
+  bankAccounts  BankAccount[]
+  paymentMethods PaymentMethod[]
+  payments      Payment[]
+  webhooks      Webhook[]
+  payouts       Payout[]
+  cryptoWallets CryptoWallet[]
+  cryptoPayments CryptoPayment[]
+  checkoutSessions CheckoutSession[]
+  products       Product[]
+
+  @@map("users")
+}
+
+// ── Customers ─────────────────────────────────────────────────
+
+model Customer {
+  id            String   @id @default(cuid())
+  pulseId       String   @unique @default(cuid()) @map("pulse_id")
+  userId        String   @map("user_id")
+  email         String?
+  name          String?
+  phone         String?
+  address       String?
+  metadata      String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccounts  BankAccount[]
+  paymentMethods PaymentMethod[]
+  payments      Payment[]
+  checkoutSessions CheckoutSession[]
+
+  @@index([userId])
+  @@map("customers")
+}
+
+// ── Bank Accounts (via Stripe Financial Connections) ──────────
+
+model BankAccount {
+  id                       String   @id @default(cuid())
+  pulseId                  String   @unique @default(cuid()) @map("pulse_id")
+  userId                   String   @map("user_id")
+  customerId               String?  @map("customer_id")
+  stripeFinancialAccountId String?  @map("stripe_financial_account_id")
+  stripePaymentMethodId    String?  @map("stripe_payment_method_id")
+  stripeBankAccountId      String?  @map("stripe_bank_account_id")
+  institutionId            String?  @map("institution_id")
+  institutionName          String?  @map("institution_name")
+  accountName              String?  @map("account_name")
+  accountType              String   @map("account_type")
+  accountSubtype           String?  @map("account_subtype")
+  mask                     String?
+  routingNumber            String?  @map("routing_number")
+  accountNumber            String?  @map("account_number")
+  wireRouting              String?  @map("wire_routing")
+  verified                 Boolean  @default(false)
+  status                   String   @default("active")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer          Customer? @relation(fields: [customerId], references: [id])
+  paymentMethods    PaymentMethod[]
+  payments          Payment[]
+  payouts           Payout[]
+
+  @@index([userId])
+  @@index([customerId])
+  @@map("bank_accounts")
+}
+
+// ── Payment Methods ───────────────────────────────────────────
+
+model PaymentMethod {
+  id              String   @id @default(cuid())
+  pulseId         String   @unique @default(cuid()) @map("pulse_id")
+  userId          String   @map("user_id")
+  customerId      String?  @map("customer_id")
+  bankAccountId   String?  @map("bank_account_id")
+  type            String   @default("us_bank_account")
+  isDefault       Boolean  @default(false) @map("is_default")
+  billingDetails  String?    @map("billing_details")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer        Customer?   @relation(fields: [customerId], references: [id])
+  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
+  payments        Payment[]
+
+  @@index([userId])
+  @@index([customerId])
+  @@map("payment_methods")
+}
+
+// ── Payments ──────────────────────────────────────────────────
+
+model Payment {
+  id                String   @id @default(cuid())
+  pulseId           String   @unique @default(cuid()) @map("pulse_id")
+  userId            String   @map("user_id")
+  customerId        String?  @map("customer_id")
+  paymentMethodId   String?  @map("payment_method_id")
+  bankAccountId     String?  @map("bank_account_id")
+
+  amount            Int
+  currency          String   @default("usd")
+  description       String?
+  status            String   @default("pending")
+  paymentType       String   @default("ach_debit") @map("payment_type")
+  direction         String   @default("incoming")
+
+  achReturnCode     String?  @map("ach_return_code")
+  achTraceNumber    String?  @map("ach_trace_number")
+  achCompanyEntry   String?  @map("ach_company_entry")
+
+  stripePaymentIntentId String?  @map("stripe_payment_intent_id")
+
+  fee               Int      @default(0)
+  netAmount         Int?     @map("net_amount")
+
+  initiatedAt       DateTime? @map("initiated_at")
+  settledAt         DateTime? @map("settled_at")
+  failedAt          DateTime? @map("failed_at")
+  canceledAt        DateTime? @map("canceled_at")
+
+  metadata          String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer          Customer?    @relation(fields: [customerId], references: [id])
+  paymentMethod     PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id])
+  cryptoPayments    CryptoPayment[]
+  payouts           PayoutPayment[]
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([status])
+  @@index([pulseId])
+  @@map("payments")
+}
+
+// ── Payouts ───────────────────────────────────────────────────
+
+model Payout {
+  id            String   @id @default(cuid())
+  pulseId       String   @unique @default(cuid()) @map("pulse_id")
+  userId        String   @map("user_id")
+  bankAccountId String   @map("bank_account_id")
+  amount        Int
+  currency      String   @default("usd")
+  status        String   @default("pending")
+  method        String   @default("standard")
+  arrivalDate   DateTime? @map("arrival_date")
+  fee           Int      @default(0)
+  description   String?
+  metadata          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount   BankAccount   @relation(fields: [bankAccountId], references: [id])
+  payments      PayoutPayment[]
+
+  @@index([userId])
+  @@map("payouts")
+}
+
+model PayoutPayment {
+  id        String  @id @default(cuid())
+  payoutId  String  @map("payout_id")
+  paymentId String  @map("payment_id")
+
+  payout    Payout  @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@unique([payoutId, paymentId])
+  @@map("payout_payments")
+}
+
+// ── Webhooks ──────────────────────────────────────────────────
+
+model Webhook {
+  id          String   @id @default(cuid())
+  pulseId     String   @unique @default(cuid()) @map("pulse_id")
+  userId      String   @map("user_id")
+  url         String
+  events      String
+  secret      String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries  WebhookDelivery[]
+
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id          String   @id @default(cuid())
+  webhookId   String   @map("webhook_id")
+  eventType   String   @map("event_type")
+  payload     String
+  statusCode  Int?     @map("status_code")
+  response    String?
+  success     Boolean  @default(false)
+  attempts    Int      @default(0)
+  nextRetryAt DateTime? @map("next_retry_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  webhook     Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@map("webhook_deliveries")
+}
+
+// ── Events (Audit Log) ───────────────────────────────────────
+
+model Event {
+  id          String   @id @default(cuid())
+  pulseId     String   @unique @default(cuid()) @map("pulse_id")
+  userId      String   @map("user_id")
+  type        String
+  objectType  String   @map("object_type")
+  objectId    String   @map("object_id")
+  data        String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([type])
+  @@index([objectType, objectId])
+  @@map("events")
+}
+
+// ── Crypto Payments ──────────────────────────────────────────
+
+model CryptoWallet {
+  id              String   @id @default(cuid())
+  pulseId         String   @unique @default(cuid()) @map("pulse_id")
+  userId          String   @map("user_id")
+  currency        String
+  address         String
+  privateKey      String?  @map("private_key")
+  derivationIndex Int      @default(0) @map("derivation_index")
+  balance         Decimal  @default(0)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cryptoPayments  CryptoPayment[]
+  walletTransfers WalletTransfer[]
+
+  @@unique([userId, currency, address])
+  @@index([userId])
+  @@index([currency, address])
+  @@map("crypto_wallets")
+}
+
+model WalletTransfer {
+  id          String   @id @default(cuid())
+  walletId    String   @map("wallet_id")
+  amount      Decimal
+  direction   String
+  txHash      String?  @map("tx_hash")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  wallet      CryptoWallet @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
+  @@map("wallet_transfers")
+}
+
+model CryptoPayment {
+  id                String   @id @default(cuid())
+  pulseId           String   @unique @default(cuid()) @map("pulse_id")
+  userId            String   @map("user_id")
+  paymentId         String?  @map("payment_id")
+  walletId          String   @map("wallet_id")
+  currency          String
+  amountDue         Decimal  @map("amount_due")
+  amountReceived    Decimal? @map("amount_received")
+  exchangeRate      Decimal  @map("exchange_rate")
+  depositAddress    String   @map("deposit_address")
+  txHash            String?  @map("tx_hash")
+  confirmations     Int      @default(0)
+  requiredConfirms  Int      @map("required_confirms")
+  status            String   @default("pending")
+  expiresAt         DateTime @map("expires_at")
+  paidAt            DateTime? @map("paid_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment           Payment? @relation(fields: [paymentId], references: [id])
+  wallet            CryptoWallet @relation(fields: [walletId], references: [id])
+  checkoutSessions  CheckoutSession[]
+
+  @@index([userId])
+  @@index([depositAddress])
+  @@index([txHash])
+  @@index([status])
+  @@map("crypto_payments")
+}
+
+// ── Checkout Sessions ────────────────────────────────────────
+
+model CheckoutSession {
+  id                String   @id @default(cuid())
+  pulseId           String   @unique @default(cuid()) @map("pulse_id")
+  userId            String   @map("user_id")
+  customerId        String?  @map("customer_id")
+  cryptoPaymentId   String?  @map("crypto_payment_id")
+  productId         String?  @map("product_id")
+
+  amountUsd         Int      @map("amount_usd")
+  currency          String
+  description       String?
+  successUrl        String?  @map("success_url")
+  cancelUrl         String?  @map("cancel_url")
+  metadata          String?
+
+  status            String   @default("open")
+  expiresAt         DateTime @map("expires_at")
+  completedAt       DateTime? @map("completed_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer          Customer? @relation(fields: [customerId], references: [id])
+  cryptoPayment     CryptoPayment? @relation(fields: [cryptoPaymentId], references: [id])
+  product           Product?       @relation(fields: [productId], references: [id])
+
+  @@index([userId])
+  @@index([pulseId])
+  @@index([status])
+  @@map("checkout_sessions")
+}
+
+// ── Products ─────────────────────────────────────────────────
+
+model Product {
+  id            String   @id @default(cuid())
+  pulseId       String   @unique @default(cuid()) @map("pulse_id")
+  userId        String   @map("user_id")
+  name          String
+  description   String?
+  priceUsd      Int      @map("price_usd")
+  currency      String   @default("usd")
+  digitalFileUrl String? @map("digital_file_url")
+  deliveryItems String?  @map("delivery_items")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkoutSessions  CheckoutSession[]
+
+  @@index([userId])
+  @@map("products")
+}

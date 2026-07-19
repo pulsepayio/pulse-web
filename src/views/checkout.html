@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Pulse</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .checkout{max-width:460px;width:100%;padding:36px;background:#111;border-radius:16px;border:1px solid #222}
+    .header{text-align:center;margin-bottom:28px}
+    .logo{font-size:20px;font-weight:700;color:#8b5cf6}
+    .tagline{font-size:12px;color:#555;margin-top:4px}
+    .step{display:none}.step.active{display:block}
+    .amount-display{text-align:center;margin-bottom:24px}
+    .amount-big{font-size:40px;font-weight:700;letter-spacing:-1px}
+    .amount-label{font-size:13px;color:#666;margin-top:4px}
+    .divider{height:1px;background:#222;margin:20px 0}
+    .section-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;font-weight:600}
+    .currency-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+    .currency-card{padding:14px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;cursor:pointer;transition:all .15s;text-align:center}
+    .currency-card:hover{border-color:#8b5cf6;background:#1a1a2e}
+    .currency-card:active{transform:scale(.97)}
+    .cc-icon{width:36px;height:36px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff}
+    .cc-name{font-size:13px;font-weight:600}
+    .cc-full{font-size:10px;color:#666;margin-top:2px}
+    .cc-amount{font-size:12px;color:#8b5cf6;margin-top:6px;font-weight:600;font-variant-numeric:tabular-nums}
+    .tab-row{display:flex;gap:0;margin-bottom:14px;background:#1a1a1a;border-radius:10px;overflow:hidden;border:1px solid #2a2a2a}
+    .tab-btn{flex:1;padding:10px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;color:#666;background:transparent;border:none;transition:all .15s}
+    .tab-btn.active{background:#8b5cf6;color:#fff}
+    .tab-btn:hover:not(.active){color:#aaa}
+    .tab-content{display:none}.tab-content.active{display:block}
+    .powered-by{text-align:center;font-size:11px;color:#333;margin-top:20px}
+    .back-btn{background:none;border:none;color:#666;font-size:13px;cursor:pointer;padding:0;margin-bottom:18px;display:flex;align-items:center;gap:4px}
+    .back-btn:hover{color:#aaa}
+    .pay-header{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+    .pay-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+    .pay-amount-section{text-align:center;margin-bottom:24px}
+    .pay-crypto-amount{font-size:34px;font-weight:700;letter-spacing:-1px}
+    .pay-usd-amount{font-size:14px;color:#666;margin-top:4px}
+    .pay-rate{font-size:12px;color:#444;margin-top:6px}
+    .qr-section{display:flex;justify-content:center;margin-bottom:22px}
+    .qr-box{background:#fff;border-radius:12px;padding:14px;width:210px;height:210px;display:flex;align-items:center;justify-content:center}
+    .qr-box svg{width:182px;height:182px}
+    .address-box{background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+    .address-text{flex:1;font-family:'SF Mono','Fira Code',monospace;font-size:11.5px;color:#ccc;word-break:break-all;line-height:1.5}
+    .copy-btn{background:#8b5cf6;border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s}
+    .copy-btn:hover{background:#7c3aed}
+    .timer-section{text-align:center;margin-bottom:18px}
+    .timer-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+    .timer{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+    .timer.urgent{color:#ef4444}
+    .instructions{background:#1a1a2e;border-radius:10px;padding:14px 16px;margin-bottom:18px}
+    .instructions h3{font-size:12px;font-weight:600;margin-bottom:8px;color:#8b5cf6}
+    .instructions ol{padding-left:16px;font-size:12px;color:#888;line-height:1.9}
+    .status-bar{text-align:center;padding:12px;border-radius:10px;font-size:13px;font-weight:600}
+    .status-bar.pending{background:#1a2e1a;color:#22c55e;border:1px solid #166534}
+    .status-bar.confirmed{background:#166534;color:#fff;border:1px solid #22c55e}
+    .status-bar.expired{background:#2e1a1a;color:#ef4444;border:1px solid #991b1b}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(34,197,94,.3);border-top-color:#22c55e;border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+<div class="checkout">
+
+  <!-- STEP 1: Choose -->
+  <div class="step active" id="step1">
+    <div class="header">
+      <div class="logo">Pulse</div>
+      <div class="tagline">Secure crypto checkout</div>
+    </div>
+    <div class="amount-display">
+      <div class="amount-big" id="amountBig">--</div>
+      <div class="amount-label">Amount due</div>
+    </div>
+    <div class="divider"></div>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;color:#666;margin-bottom:6px;font-weight:600">Your email (for receipt & delivery)</label>
+      <input type="email" id="buyerEmail" placeholder="you@example.com" style="width:100%;padding:10px 14px;background:#1a1a1a;border:1px solid #333;border-radius:10px;color:#fff;font-size:14px;outline:none">
+    </div>
+    <div class="tab-row">
+      <div class="tab-btn active" onclick="switchTab('popular')">Popular</div>
+      <div class="tab-btn" onclick="switchTab('alt')">Alt L1s</div>
+      <div class="tab-btn" onclick="switchTab('stable')">Stablecoins</div>
+    </div>
+    <div class="tab-content active" id="tab-popular">
+      <div class="section-label">Most used</div>
+      <div class="currency-grid" id="grid-popular"></div>
+    </div>
+    <div class="tab-content" id="tab-alt">
+      <div class="section-label">Alternative networks</div>
+      <div class="currency-grid" id="grid-alt"></div>
+    </div>
+    <div class="tab-content" id="tab-stable">
+      <div class="section-label">Stablecoins</div>
+      <div class="currency-grid" id="grid-stable"></div>
+    </div>
+    <div class="powered-by">Powered by Pulse</div>
+  </div>
+
+  <!-- STEP 2: Pay -->
+  <div class="step" id="step2">
+    <button class="back-btn" id="backBtn">&#8592; Back</button>
+    <div class="pay-header" id="payHeader"></div>
+    <div class="pay-amount-section">
+      <div class="pay-crypto-amount" id="payCryptoAmount"></div>
+      <div class="pay-usd-amount" id="payUsdAmount"></div>
+      <div class="pay-rate" id="payRate"></div>
+    </div>
+    <div class="qr-section"><div class="qr-box" id="qrBox"></div></div>
+    <div class="address-box">
+      <div class="address-text" id="depositAddress"></div>
+      <button class="copy-btn" id="copyBtn">Copy</button>
+    </div>
+    <div class="timer-section">
+      <div class="timer-label">Expires in</div>
+      <div class="timer" id="timer">30:00</div>
+    </div>
+    <div class="instructions">
+      <h3>How to pay</h3>
+      <ol>
+        <li>Copy the deposit address</li>
+        <li>Send the exact amount from your wallet</li>
+        <li>Wait for blockchain confirmation</li>
+      </ol>
+    </div>
+    <div class="status-bar pending" id="statusBar">
+      <span class="spinner"></span> Waiting for payment...
+    </div>
+    <div class="powered-by">Powered by Pulse</div>
+  </div>
+
+</div>
+
+<script>
+var SESSION_ID = '{{SESSION_ID}}';
+var SESSION = null;
+var CURRENCIES = [
+  {code:'BTC',  name:'Bitcoin',      full:'Bitcoin Network',     cat:'popular', color:'#f7931a', confs:6},
+  {code:'ETH',  name:'Ethereum',     full:'Ethereum Network',    cat:'popular', color:'#627eea', confs:12},
+  {code:'SOL',  name:'Solana',       full:'Solana Network',      cat:'popular', color:'#9945ff', confs:1},
+  {code:'DOGE', name:'Dogecoin',     full:'Dogecoin Network',    cat:'popular', color:'#c2a633', confs:6},
+  {code:'TRX',  name:'TRON',         full:'TRON Network',        cat:'popular', color:'#ff0013', confs:19},
+  {code:'TON',  name:'Toncoin',      full:'The Open Network',    cat:'popular', color:'#0098ea', confs:1},
+  {code:'BNB',  name:'BNB',          full:'BNB Smart Chain',     cat:'alt',     color:'#f3ba2f', confs:15},
+  {code:'AVAX', name:'Avalanche',    full:'Avalanche C-Chain',   cat:'alt',     color:'#e84142', confs:1},
+  {code:'MATIC',name:'Polygon',      full:'Polygon PoS',         cat:'alt',     color:'#8247e5', confs:128},
+  {code:'ARB',  name:'Arbitrum',     full:'Arbitrum One',        cat:'alt',     color:'#28a0f0', confs:1},
+  {code:'OP',   name:'Optimism',     full:'OP Mainnet',          cat:'alt',     color:'#ff0420', confs:1},
+  {code:'BASE', name:'Base',         full:'Base Network',        cat:'alt',     color:'#0052ff', confs:1},
+  {code:'USDT', name:'Tether',       full:'Multi-chain USDT',    cat:'stable',  color:'#26a17b', confs:12},
+  {code:'USDC', name:'USD Coin',     full:'Multi-chain USDC',    cat:'stable',  color:'#2775ca', confs:12},
+  {code:'DAI',  name:'Dai',          full:'Dai Stablecoin',      cat:'stable',  color:'#f5ac37', confs:12},
+  {code:'BUSD', name:'Binance USD',  full:'Binance USD',         cat:'stable',  color:'#f0b90b', confs:15}
+];
+var RATES = {};
+var selected = null;
+var timerInterval = null;
+var pollInterval = null;
+
+function init() {
+  document.getElementById('amountBig').textContent = '$' + SESSION.amount_usd.toFixed(2);
+  ['popular','alt','stable'].forEach(function(cat) {
+    var grid = document.getElementById('grid-' + cat);
+    var coins = CURRENCIES.filter(function(c) { return c.cat === cat; });
+    grid.innerHTML = coins.map(function(c) {
+      var price = RATES[c.code] || 1;
+      var amt = SESSION.amount_usd / price;
+      var d = amt < 0.01 ? amt.toFixed(6) : amt < 1 ? amt.toFixed(4) : amt.toFixed(2);
+      return '<div class="currency-card" data-code="'+c.code+'"><div class="cc-icon" style="background:'+c.color+'">'+c.code[0]+'</div><div class="cc-name">'+c.name+'</div><div class="cc-full">'+c.full+'</div><div class="cc-amount">'+d+' '+c.code+'</div></div>';
+    }).join('');
+    grid.querySelectorAll('.currency-card').forEach(function(card) {
+      card.addEventListener('click', function() { selectCurrency(card.getAttribute('data-code')); });
+    });
+  });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
+  document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active')});
+  event.target.classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+function selectCurrency(code) {
+  var emailInput=document.getElementById('buyerEmail');
+  if(!emailInput||!emailInput.value||!emailInput.value.includes('@')){emailInput.style.borderColor='#ef4444';emailInput.focus();return;}
+  emailInput.style.borderColor='#333';
+  selected = CURRENCIES.find(function(c){return c.code===code});
+  if(!selected) return;
+  var price = RATES[code]||1;
+  var amt = SESSION.amount_usd/price;
+  var d = amt<0.01?amt.toFixed(6):amt<1?amt.toFixed(4):amt.toFixed(2);
+  document.getElementById('payHeader').innerHTML='<div class="pay-icon" style="background:'+selected.color+'">'+selected.code[0]+'</div><div><div style="font-weight:600;font-size:15px">Pay with '+selected.name+'</div><div style="font-size:12px;color:#666">'+selected.confs+' confirmation'+(selected.confs>1?'s':'')+' required</div></div>';
+  document.getElementById('payCryptoAmount').textContent=d+' '+code;
+  document.getElementById('payUsdAmount').textContent='\u2248 $'+SESSION.amount_usd.toFixed(2)+' USD';
+  document.getElementById('payRate').textContent='1 '+code+' \u2248 $'+price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' USD';
+  document.getElementById('depositAddress').textContent='Loading...';
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('active');
+  renderQR(SESSION.crypto_payment.deposit_address);
+  startTimer(new Date(SESSION.expires_at).getTime());
+  fetch('/api/checkout-data/wallets/'+SESSION_ID+'/'+code).then(function(r){return r.json()}).then(function(w){
+    if(w.address){
+      SESSION._currentAddress=w.address;
+      document.getElementById('depositAddress').textContent=w.address;
+      renderQR(w.address);
+    }else{
+      document.getElementById('depositAddress').textContent=SESSION.crypto_payment.deposit_address;
+    }
+  }).catch(function(){
+    document.getElementById('depositAddress').textContent=SESSION.crypto_payment.deposit_address;
+  });
+  pollStatus();
+}
+
+function goBack() {
+  if(timerInterval)clearInterval(timerInterval);
+  if(pollInterval)clearInterval(pollInterval);
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step1').classList.add('active');
+}
+
+function renderQR(addr) {
+  var box=document.getElementById('qrBox'),h=0;
+  for(var i=0;i<addr.length;i++)h=((h<<5)-h+addr.charCodeAt(i))|0;
+  var size=21,cell=182/size,cells='';
+  for(var y=0;y<size;y++)for(var x=0;x<size;x++){
+    var inTL=x<7&&y<7,inTR=x>=size-7&&y<7,inBL=x<7&&y>=size-7,fill=false;
+    if(inTL||inTR||inBL){var lx=inTR?x-(size-7):x,ly=inBL?y-(size-7):y;fill=(lx===0||ly===0||lx===6||ly===6)||(lx>=2&&lx<=4&&ly>=2&&ly===4);}else{h=(h*1103515245+12345)|0;fill=((h*(x*31+y*17+1))&0x7fffffff)%5<2;}
+    if(fill)cells+='<rect x="'+(x*cell)+'" y="'+(y*cell)+'" width="'+cell+'" height="'+cell+'"/>';
+  }
+  box.innerHTML='<svg viewBox="0 0 182 182" xmlns="http://www.w3.org/2000/svg"><rect width="182" height="182" fill="#fff"/><g fill="#000">'+cells+'</g></svg>';
+}
+
+function startTimer(end) {
+  if(timerInterval)clearInterval(timerInterval);
+  var el=document.getElementById('timer');
+  function tick(){var diff=end-Date.now();if(diff<=0){el.textContent='00:00';el.classList.add('urgent');clearInterval(timerInterval);return;}var m=Math.floor(diff/60000),s=Math.floor((diff%60000)/1000);el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');el.classList.toggle('urgent',diff<300000);}
+  tick();timerInterval=setInterval(tick,1000);
+}
+
+function pollStatus() {
+  if(pollInterval)clearInterval(pollInterval);
+  pollInterval=setInterval(function(){
+    fetch('/api/checkout-data/session/'+SESSION_ID).then(function(r){return r.json()}).then(function(data){
+      if(data.crypto_payment&&data.crypto_payment.status==='confirmed'){
+        clearInterval(pollInterval);
+        var html='<div style="text-align:center;padding:20px 0"><div style="font-size:48px;margin-bottom:12px">&#10003;</div><div style="font-size:18px;font-weight:700;color:#22c55e;margin-bottom:6px">Payment Confirmed</div><div style="font-size:13px;color:#666">Your payment of '+document.getElementById('payCryptoAmount').textContent+' has been confirmed on-chain.</div>';
+        var items=data.delivery_items||[];
+        if(items.length){
+          html+='<div style="margin-top:24px;text-align:left;background:#1a1a2e;border:1px solid #2a2a2a;border-radius:12px;padding:18px 20px">';
+          html+='<div style="font-size:11px;color:#8b5cf6;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:14px">Your delivery</div>';
+          items.forEach(function(item){
+            html+='<div style="margin-bottom:12px">';
+            html+='<div style="font-size:11px;color:#666;margin-bottom:3px;font-weight:600">'+item.label+'</div>';
+            html+='<div style="font-size:14px;color:#fff;word-break:break-all;font-family:\'SF Mono\',monospace;background:#111;padding:8px 12px;border-radius:8px;border:1px solid #333">'+item.value+'</div>';
+            html+='</div>';
+          });
+          html+='</div>';
+        }
+        html+='<div style="margin-top:20px;font-size:12px;color:#444">You can close this page.</div></div>';
+        document.getElementById('step2').innerHTML=html;
+      }
+    }).catch(function(){});
+  },5000);
+}
+
+document.getElementById('backBtn').addEventListener('click', goBack);
+document.getElementById('copyBtn').addEventListener('click', function(){
+  var addr=(SESSION&&SESSION._currentAddress)||SESSION.crypto_payment.deposit_address;
+  navigator.clipboard.writeText(addr).then(function(){
+    var btn=document.getElementById('copyBtn');btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy'},2000);
+  });
+});
+
+var DEMO_RATES={BTC:68000,ETH:3800,SOL:170,DOGE:0.165,TRX:0.12,TON:5.87,BNB:600,AVAX:38,MATIC:0.72,ARB:1.15,OP:2.30,BASE:0.10,USDT:1,USDC:1,DAI:1,BUSD:1};
+var DEMO=null;
+
+function loadDemo(){SESSION=DEMO||{amount_usd:250.00,crypto_payment:{deposit_address:'EQExampleAddress1234567890'},expires_at:new Date(Date.now()+30*60*1000).toISOString()};RATES=DEMO_RATES;init();}
+
+if(SESSION_ID&&SESSION_ID!=='{{SESSION_ID}}'){
+  fetch('/api/checkout-data/session/'+SESSION_ID).then(function(r){return r.json()}).then(function(data){
+    SESSION=data;
+    fetch('/v1/crypto/rates').then(function(r){return r.json()}).then(function(d){
+      if(d.data)d.data.forEach(function(r){RATES[r.currency]=r.usd_rate});
+      if(!RATES.TON)RATES=DEMO_RATES;
+      init();
+    }).catch(function(){RATES=DEMO_RATES;init();});
+  }).catch(function(){loadDemo();});
+}else{
+  loadDemo();
+}
+</script>
+</body>
+</html>

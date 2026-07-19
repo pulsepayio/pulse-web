@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0a;--surface:#111;--surface2:#18181b;--surface3:#1e1e22;--border:#27272a;--border2:#3f3f46;--text:#fafafa;--text2:#a1a1aa;--text3:#71717a;--accent:#8b5cf6;--accent2:#7c3aed;--accentBg:rgba(139,92,246,.08);--green:#22c55e;--greenBg:rgba(34,197,94,.1);--red:#ef4444;--redBg:rgba(239,68,68,.1);--yellow:#eab308;--yellowBg:rgba(234,179,8,.1);--blue:#3b82f6;--blueBg:rgba(59,130,246,.1);--radius:10px;--radiusLg:14px;--shadow:0 1px 3px rgba(0,0,0,.3)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+input,select,textarea{font-family:inherit}
+
+.auth-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:radial-gradient(ellipse at top,rgba(139,92,246,.06),transparent 60%)}
+.auth-box{max-width:400px;width:100%}
+.auth-logo{font-size:28px;font-weight:800;color:var(--accent);text-align:center;margin-bottom:6px;letter-spacing:-.5px}
+.auth-sub{text-align:center;color:var(--text3);font-size:13px;margin-bottom:32px}
+.auth-tabs{display:flex;gap:0;margin-bottom:24px;background:var(--surface);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.auth-tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;color:var(--text3);background:transparent;border:none;transition:all .15s}
+.auth-tab.active{background:var(--accent);color:#fff}
+.auth-tab:hover:not(.active){color:var(--text2)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;outline:none;transition:border .15s}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{padding:10px 20px;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;transition:all .12s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+.error-msg{background:var(--redBg);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none}
+
+.app{display:flex;min-height:100vh}
+.sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;z-index:10}
+.sidebar-logo{font-size:20px;font-weight:800;color:var(--accent);padding:0 20px;margin-bottom:28px;letter-spacing:-.5px}
+.sidebar-section{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);padding:0 20px;margin:20px 0 8px;font-weight:700}
+.sidebar-item{padding:9px 20px;font-size:13px;color:var(--text2);cursor:pointer;transition:all .1s;display:flex;align-items:center;gap:10px;border-left:2px solid transparent}
+.sidebar-item:hover{color:var(--text);background:var(--surface2)}
+.sidebar-item.active{color:var(--accent);background:var(--accentBg);border-left-color:var(--accent)}
+.sidebar-item .icon{width:20px;text-align:center;font-size:15px;opacity:.7}
+.sidebar-item.active .icon{opacity:1}
+.sidebar-spacer{flex:1}
+.sidebar-footer{padding:12px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--text3)}
+
+.main{flex:1;margin-left:230px;padding:32px 36px;max-width:1200px}
+.page-header{margin-bottom:28px}
+.page-header h1{font-size:24px;font-weight:700;margin-bottom:2px}
+.page-header .sub{font-size:13px;color:var(--text3)}
+
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radiusLg);padding:20px}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px;font-weight:600}
+.stat-value{font-size:28px;font-weight:700;letter-spacing:-1px}
+.stat-value.green{color:var(--green)}.stat-value.blue{color:var(--blue)}.stat-value.yellow{color:var(--yellow)}.stat-value.accent{color:var(--accent)}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radiusLg);margin-bottom:20px;overflow:hidden}
+.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:14px;font-weight:600}
+.panel-body{padding:0}
+
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 18px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);background:var(--surface2)}
+td{padding:12px 18px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+.empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:13px}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:var(--greenBg);color:var(--green)}
+.badge-yellow{background:var(--yellowBg);color:var(--yellow)}
+.badge-blue{background:var(--blueBg);color:var(--blue)}
+.badge-red{background:var(--redBg);color:var(--red)}
+.badge-gray{background:rgba(113,113,122,.15);color:var(--text2)}
+.badge-accent{background:var(--accentBg);color:var(--accent)}
+
+.mono{font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:12px}
+.code-block{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:12px;color:var(--text2);overflow-x:auto;word-break:break-all}
+
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radiusLg);padding:28px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 20px;font-size:13px;z-index:200;box-shadow:var(--shadow);animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+.wallet-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.wallet-card:last-child{margin-bottom:0}
+.wallet-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:16px;flex-shrink:0}
+.wallet-info{flex:1;margin-left:14px}
+.wallet-name{font-size:14px;font-weight:600}
+.wallet-addr{font-size:11px;color:var(--text3);font-family:'SF Mono',monospace;margin-top:2px}
+.wallet-balance{text-align:right}
+.wallet-bal-num{font-size:18px;font-weight:700}
+.wallet-bal-usd{font-size:12px;color:var(--text3)}
+
+.checkout-box{max-width:520px}
+.order-summary{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.order-item{display:flex;justify-content:space-between;font-size:13px;padding:6px 0}
+.order-total{border-top:1px solid var(--border);margin-top:8px;padding-top:8px;font-weight:600}
+
+.protected-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;background:var(--greenBg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.protected-badge::before{content:'\\2713';font-size:10px}
+</style>
+</head>
+<body>
+
+<div id="authPage" class="auth-page">
+  <div class="auth-box">
+    <div class="auth-logo">Pulse</div>
+    <div class="auth-sub">Real-time payment infrastructure</div>
+    <div class="error-msg" id="authError"></div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showAuthTab('register')">Register</button>
+      <button class="auth-tab" onclick="showAuthTab('login')">Login</button>
+    </div>
+    <form id="authForm" onsubmit="handleAuth(event)">
+      <div class="form-group" id="bizGroup"><label>Business Name</label><input id="aBiz" placeholder="Acme Inc"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="aEmail" placeholder="you@example.com" required></div>
+      <div class="form-group"><label>Password</label><input type="password" id="aPass" placeholder="At least 8 characters" required minlength="8"></div>
+      <button type="submit" class="btn btn-primary btn-full" id="aBtn">Create Account</button>
+    </form>
+  </div>
+</div>
+
+<div id="appPage" class="app" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-logo">Pulse</div>
+    <div class="sidebar-section">Overview</div>
+    <div class="sidebar-item active" data-tab="overview"><span class="icon">&#9632;</span>Dashboard</div>
+    <div class="sidebar-section">Accept Payments</div>
+    <div class="sidebar-item" data-tab="products"><span class="icon">&#9733;</span>Products</div>
+    <div class="sidebar-item" data-tab="checkout"><span class="icon">&#9783;</span>Checkout</div>
+    <div class="sidebar-item" data-tab="payments"><span class="icon">&#8593;</span>Payments</div>
+    <div class="sidebar-section">Manage</div>
+    <div class="sidebar-item" data-tab="wallets"><span class="icon">&#9783;</span>Wallets</div>
+    <div class="sidebar-item" data-tab="webhooks"><span class="icon">&#8644;</span>Webhooks</div>
+    <div class="sidebar-item" data-tab="settings"><span class="icon">&#9881;</span>Settings</div>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-footer">
+      <span style="cursor:pointer;color:var(--red);font-size:12px" onclick="signOut()">&#10550; Sign out</span>
+    </div>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+var T=localStorage.getItem('pulse_token'),K=localStorage.getItem('pulse_api_key'),tab='overview';
+function api(m,p,b){var o={method:m,headers:{'Content-Type':'application/json'}};if(T)o.headers['Authorization']='Bearer '+T;if(K)o.headers['X-Pulse-Api-Key']=K;if(b)o.body=JSON.stringify(b);return fetch('/v1'+p,o).then(function(r){return r.json().then(function(d){if(!r.ok)throw d;return d})})}
+function $(id){return document.getElementById(id)}
+function fmt(c){if(!c&&c!==0)return'$0.00';return'$'+(c/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function fDate(d){if(!d)return'-';return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+function badge(s){var m={pending:'yellow',processing:'blue',succeeded:'green',failed:'red',canceled:'gray',active:'green',open:'accent',expired:'red'};return'<span class="badge badge-'+(m[s]||'gray')+'">'+s+'</span>'}
+function sid(id){return id?id.substring(0,10)+'...':id}
+function toast(msg){var t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove()},3000)}
+
+function showAuthTab(m){document.querySelectorAll('.auth-tab').forEach(function(t,i){t.classList.toggle('active',i===(m==='register'?0:1))});$('aBtn').textContent=m==='register'?'Create Account':'Sign In';$('bizGroup').style.display=m==='register'?'block':'none'}
+
+function handleAuth(e){
+  e.preventDefault();var err=$('authError');err.style.display='none';
+  var body={email:$('aEmail').value,password:$('aPass').value};
+  if(tab==='register'||$('aBtn').textContent.includes('Create'))body.business_name=$('aBiz').value;
+  var ep=$('aBtn').textContent.includes('Create')?'/auth/register':'/auth/login';
+  api('POST',ep,body).then(function(d){T=d.token;K=d.api_key;localStorage.setItem('pulse_token',T);localStorage.setItem('pulse_api_key',K);showApp()}).catch(function(e){err.textContent=(e&&e.error&&e.error.message)||'Failed';err.style.display='block'})
+}
+function signOut(){localStorage.clear();T=K=null;$('appPage').style.display='none';$('authPage').style.display='flex'}
+
+function showApp(){$('authPage').style.display='none';$('appPage').style.display='flex';renderTab(tab)}
+
+document.querySelectorAll('.sidebar-item').forEach(function(i){
+  i.addEventListener('click',function(){tab=i.getAttribute('data-tab');document.querySelectorAll('.sidebar-item').forEach(function(x){x.classList.remove('active')});i.classList.add('active');renderTab(tab)})
+});
+
+function renderTab(t){
+  var el=$('main');
+  switch(t){
+    case'overview':renderOverview(el);break;
+    case'products':renderProducts(el);break;
+    case'checkout':renderCheckout(el);break;
+    case'payments':renderPayments(el);break;
+    case'wallets':renderWallets(el);break;
+    case'webhooks':renderWebhooks(el);break;
+    case'settings':renderSettings(el);break;
+  }
+}
+
+// ── Overview ────────────────────────────────────────────────
+function renderOverview(el){
+  el.innerHTML='<div class="page-header"><h1>Dashboard</h1><div class="sub">Your payment infrastructure at a glance</div></div><div class="stat-grid" id="sGrid"><div class="stat-card"><div class="stat-label">Available Balance</div><div class="stat-value green" id="sBal">--</div></div><div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value yellow" id="sPend">--</div></div><div class="stat-card"><div class="stat-label">Payments</div><div class="stat-value blue" id="sPay">--</div></div><div class="stat-card"><div class="stat-label">Products</div><div class="stat-value accent" id="sProd">--</div></div></div><div class="panel"><div class="panel-header"><span class="panel-title">Recent Payments</span><span class="protected-badge">Fraud Protected</span></div><div class="panel-body"><table><thead><tr><th>Amount</th><th>Status</th><th>Currency</th><th>Date</th></tr></thead><tbody id="oPays"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody></table></div></div>';
+  Promise.all([api('GET','/balance').catch(function(){return{available:0,pending:0}}),api('GET','/payments?limit=5').catch(function(){return{data:[]}}),api('GET','/products').catch(function(){return{data:[]}})]).then(function(r){
+    $('sBal').textContent=fmt(r[0].available);$('sPend').textContent=fmt(r[0].pending);
+    var pays=r[1].data||[];$('sPay').textContent=pays.length;
+    $('sProd').textContent=(r[2].data||[]).length;
+    var tb=$('oPays');
+    if(!pays.length){tb.innerHTML='<tr><td colspan="4" class="empty">No payments yet</td></tr>';return}
+    tb.innerHTML=pays.map(function(p){return'<tr><td>'+fmt(p.amount)+'</td><td>'+badge(p.status)+'</td><td>'+(p.currency||'usd')+'</td><td>'+fDate(p.created)+'</td></tr>'}).join('');
+  });
+}
+
+// ── Products ────────────────────────────────────────────────
+function renderProducts(el){
+  el.innerHTML='<div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start"><div><h1>Products</h1><div class="sub">Create and manage your digital products</div></div><button class="btn btn-primary" onclick="showProductModal()">+ Add Product</button></div><div class="panel"><div class="panel-body"><table><thead><tr><th>Name</th><th>Price</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody id="pTable"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody></table></div></div>';
+  api('GET','/products').then(function(r){
+    var data=r.data||[],tb=$('pTable');
+    if(!data.length){tb.innerHTML='<tr><td colspan="5" class="empty">No products yet. Add your first product to start accepting payments.</td></tr>';return}
+    tb.innerHTML=data.map(function(p){
+      var itemCount=p.delivery_items?p.delivery_items.length:0;
+      var itemBadge=itemCount?'<span style="color:var(--accent);font-size:11px;margin-left:6px">'+itemCount+' item'+(itemCount>1?'s':'')+'</span>':'';
+      return'<tr><td><strong>'+p.name+'</strong>'+(p.description?'<br><span style="color:var(--text3);font-size:12px">'+p.description+'</span>':'')+itemBadge+'</td><td>'+(p.price_usd?'$'+p.price_usd.toFixed(2):'-')+'</td><td>'+(p.active?badge('active'):badge('inactive'))+'</td><td>'+fDate(p.created)+'</td><td><button class="btn btn-ghost btn-sm" onclick="deleteProduct(\''+p.id+'\')">Delete</button></td></tr>'}).join('');
+  }).catch(function(){$('pTable').innerHTML='<tr><td colspan="5" class="empty">Failed to load</td></tr>'});
+}
+
+function showProductModal(){
+  var ov=document.createElement('div');ov.className='modal-overlay';
+  ov.onclick=function(e){if(e.target===ov)ov.remove()};
+  ov.innerHTML='<div class="modal" style="max-width:540px"><h2>Add Product</h2><div class="form-group"><label>Product Name</label><input id="mPName" placeholder="e.g. Premium Course"></div><div class="form-group"><label>Description</label><textarea id="mPDesc" placeholder="What does the buyer get?"></textarea></div><div class="form-row"><div class="form-group"><label>Price (USD)</label><input type="number" id="mPPrice" step="0.01" min="0.01" placeholder="29.99"></div></div><div class="form-group"><label style="display:flex;align-items:center;gap:6px">Delivery Items <span style="color:var(--text3);font-weight:400;font-size:11px">(sent to buyer after payment)</span></label><div id="mPItems"></div><button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addProductItem()">+ Add Item</button></div><div class="modal-actions"><button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">Cancel</button><button class="btn btn-primary" id="mPSubmit" onclick="submitProduct()">Create Product</button></div></div>';
+  document.body.appendChild(ov);
+  addProductItem();
+  addProductItem();
+}
+
+function addProductItem(label,value){
+  var list=$('mPItems');if(!list)return;
+  var row=document.createElement('div');
+  row.style.cssText='display:grid;grid-template-columns:140px 1fr 32px;gap:8px;margin-bottom:8px;align-items:center';
+  row.innerHTML='<input placeholder="Label" value="'+(label||'')+'" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none"><input placeholder="Value (credential, link, etc.)" value="'+(value||'')+'" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;outline:none;font-family:\'SF Mono\',monospace"><button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:16px;color:var(--red);border:none" onclick="this.parentElement.remove()">&times;</button>';
+  list.appendChild(row);
+}
+
+function collectProductItems(){
+  var list=$('mPItems');if(!list)return[];
+  var items=[];
+  list.querySelectorAll('div').forEach(function(row){
+    var inputs=row.querySelectorAll('input');
+    if(inputs.length>=2&&inputs[0].value.trim()&&inputs[1].value.trim()){
+      items.push({label:inputs[0].value.trim(),value:inputs[1].value.trim()});
+    }
+  });
+  return items;
+}
+
+function submitProduct(){
+  var name=$('mPName').value,desc=$('mPDesc').value,price=parseFloat($('mPPrice').value);
+  if(!name){alert('Enter a name');return}if(!price||price<=0){alert('Enter a valid price');return}
+  var items=collectProductItems();
+  $('mPSubmit').disabled=true;$('mPSubmit').textContent='Creating...';
+  var body={name:name,description:desc,price_usd:price};
+  if(items.length)body.delivery_items=items;
+  api('POST','/products',body).then(function(){
+    document.querySelector('.modal-overlay').remove();toast('Product created');renderProducts($('main'));
+  }).catch(function(e){$('mPSubmit').disabled=false;$('mPSubmit').textContent='Create Product';alert((e&&e.error&&e.error.message)||'Failed')});
+}
+
+function deleteProduct(id){if(!confirm('Delete this product?'))return;api('DELETE','/products/'+id).then(function(){toast('Deleted');renderProducts($('main'))}).catch(function(e){alert((e&&e.error&&e.error.message)||'Failed')})}
+
+// ── Checkout ────────────────────────────────────────────────
+function renderCheckout(el){
+  el.innerHTML='<div class="page-header"><h1>Create Checkout</h1><div class="sub">Pick a product, get a payment link to share with your customer</div></div><div class="checkout-box"><div class="form-group"><label>Select Product</label><select id="coProd" onchange="coProdChange()"><option value="">-- Choose a product --</option></select></div><div class="form-group"><label>Or enter custom amount (USD)</label><input type="number" id="coAmt" step="0.01" min="1" placeholder="0.00"></div><button class="btn btn-primary btn-full" onclick="createCheckout()" id="coBtn">Get Checkout Link</button><div id="coResult" style="margin-top:16px"></div><div style="margin-top:14px;font-size:12px;color:var(--text3);line-height:1.6">Share this link with your customer. They choose their currency, enter their email, and pay \u2014 all on your platform.</div></div>';
+  api('GET','/products').then(function(r){
+    var sel=$('coProd'),data=r.data||[];
+    data.forEach(function(p){var o=document.createElement('option');o.value=JSON.stringify(p);o.textContent=p.name+' \u2014 $'+p.price_usd.toFixed(2);sel.appendChild(o)});
+  });
+}
+
+function coProdChange(){
+  var sel=$('coProd'),v=sel.value;
+  if(v){var p=JSON.parse(v);$('coAmt').value=p.price_usd;$('coAmt').disabled=true}else{$('coAmt').disabled=false}
+}
+
+function createCheckout(){
+  var amt=parseFloat($('coAmt').value);if(!amt||amt<=0){alert('Enter an amount');return}
+  $('coBtn').disabled=true;$('coBtn').textContent='Creating...';
+  var body={amount_usd:amt,description:$('coDesc')?$('coDesc').value:''};
+  var sel=$('coProd');if(sel.value){var p=JSON.parse(sel.value);body.product_id=p.id}
+  api('POST','/checkout',body).then(function(r){
+    var url=location.origin+'/checkout/'+r.id;
+    $('coResult').innerHTML='<div style="background:var(--greenBg);border:1px solid rgba(34,197,94,.2);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px"><strong style="color:var(--green)">Link ready</strong><br><span style="font-size:12px;color:var(--text2)">$'+amt.toFixed(2)+' USD \u2014 expires in 30 minutes</span></div><div class="code-block">'+url+'</div><button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="navigator.clipboard.writeText(\''+url+'\');this.textContent=\'Copied!\'">Copy Link</button>';
+    $('coBtn').disabled=false;$('coBtn').textContent='Get Checkout Link';
+  }).catch(function(e){$('coResult').innerHTML='<div style="color:var(--red);font-size:13px">'+((e&&e.error&&e.error.message)||'Failed')+'</div>';$('coBtn').disabled=false;$('coBtn').textContent='Get Checkout Link'});
+}
+
+// ── Payments ────────────────────────────────────────────────
+function renderPayments(el){
+  el.innerHTML='<div class="page-header"><h1>Payments</h1><div class="sub">All transactions with fraud protection status</div></div><div class="panel"><div class="panel-body"><table><thead><tr><th>ID</th><th>Amount</th><th>Status</th><th>Confirms</th><th>Date</th></tr></thead><tbody id="payT"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody></table></div></div>';
+  api('GET','/payments?limit=50').then(function(r){
+    var data=r.data||[],tb=$('payT');
+    if(!data.length){tb.innerHTML='<tr><td colspan="5" class="empty">No payments yet</td></tr>';return}
+    tb.innerHTML=data.map(function(p){return'<tr><td class="mono">'+sid(p.id)+'</td><td>'+fmt(p.amount)+'</td><td>'+badge(p.status)+'</td><td>'+(p.confirmations||'-')+'</td><td>'+fDate(p.created)+'</td></tr>'}).join('');
+  });
+}
+
+// ── Wallets ─────────────────────────────────────────────────
+function renderWallets(el){
+  el.innerHTML='<div class="page-header"><h1>Crypto Wallets</h1><div class="sub">Dedicated wallet per currency. All addresses generated on first visit.</div></div><div id="walletList" style="max-width:700px"><div class="empty">Loading wallets...</div></div>';
+  api('GET','/wallets').then(function(r){
+    var data=r.data||[],wl=$('walletList');
+    if(!data.length){wl.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radiusLg);padding:40px;text-align:center;color:var(--text3);font-size:13px">No wallets found.</div>';return}
+    var C={BTC:'#f7931a',ETH:'#627eea',SOL:'#9945ff',DOGE:'#c2a633',TRX:'#ff0013',TON:'#0098ea',BNB:'#f3ba2f',AVAX:'#e84142',MATIC:'#8247e5',ARB:'#28a0f0',OP:'#ff0420',BASE:'#0052ff',USDT:'#26a17b',USDC:'#2775ca',DAI:'#f5ac37',BUSD:'#f0b90b'};
+    var N={BTC:'Bitcoin',ETH:'Ethereum',SOL:'Solana',DOGE:'Dogecoin',TRX:'TRON',TON:'Toncoin',BNB:'BNB',AVAX:'Avalanche',MATIC:'Polygon',ARB:'Arbitrum',OP:'Optimism',BASE:'Base',USDT:'Tether',USDC:'USD Coin',DAI:'Dai',BUSD:'Binance USD'};
+    wl.innerHTML=data.map(function(w){var c=C[w.currency]||'#8b5cf6';var n=N[w.currency]||w.currency;return'<div class="wallet-card"><div class="wallet-icon" style="background:'+c+'">'+w.currency[0]+'</div><div class="wallet-info"><div class="wallet-name">'+n+' <span style="color:var(--text3);font-size:12px">'+w.currency+'</span></div><div class="wallet-addr">'+w.address+'</div></div><div class="wallet-balance"><div class="wallet-bal-num">'+(w.balance||0).toFixed(8)+'</div><div class="wallet-bal-usd">'+w.currency+'</div></div></div>'}).join('');
+  });
+}
+
+// ── Webhooks ────────────────────────────────────────────────
+function renderWebhooks(el){
+  el.innerHTML='<div class="page-header"><h1>Webhooks</h1><div class="sub">Real-time event notifications</div></div><div class="panel" style="max-width:560px;margin-bottom:20px"><div class="panel-header"><span class="panel-title">Add Webhook</span></div><div class="panel-body" style="padding:20px"><div class="form-group"><label>Endpoint URL</label><input id="whUrl" placeholder="https://example.com/webhook"></div><div class="form-group"><label>Events (comma-separated)</label><input id="whEvents" placeholder="payment.created, payment.succeeded, payment.failed"></div><button class="btn btn-primary" onclick="createWebhook()">Create Webhook</button></div></div><div class="panel"><div class="panel-header"><span class="panel-title">Your Webhooks</span></div><div class="panel-body"><table><thead><tr><th>URL</th><th>Events</th><th>Status</th></tr></thead><tbody id="whT"><tr><td colspan="3" class="empty">Loading...</td></tr></tbody></table></div></div>';
+  api('GET','/webhooks').then(function(r){
+    var data=r.data||[],tb=$('whT');
+    if(!data.length){tb.innerHTML='<tr><td colspan="3" class="empty">No webhooks configured</td></tr>';return}
+    tb.innerHTML=data.map(function(w){var evts=typeof w.events==='string'?w.events:JSON.stringify(w.events||[]);return'<tr><td>'+w.url+'</td><td class="mono" style="max-width:240px;overflow:hidden;text-overflow:ellipsis">'+evts+'</td><td>'+badge(w.active?'active':'inactive')+'</td></tr>'}).join('');
+  });
+}
+
+function createWebhook(){
+  var url=$('whUrl').value;if(!url){alert('Enter URL');return}
+  var events=$('whEvents').value.split(',').map(function(s){return s.trim()}).filter(Boolean);
+  if(!events.length)events=['payment.created','payment.succeeded','payment.failed'];
+  api('POST','/webhooks',{url:url,events:events}).then(function(){toast('Webhook created');renderWebhooks($('main'))}).catch(function(e){alert((e&&e.error&&e.error.message)||'Failed')});
+}
+
+// ── Settings ────────────────────────────────────────────────
+function renderSettings(el){
+  Promise.all([api('GET','/api_keys').catch(function(){return{}}),api('GET','/balance').catch(function(){return{}})]).then(function(r){
+    var k=r[0],b=r[1];
+    el.innerHTML='<div class="page-header"><h1>Settings</h1><div class="sub">API keys and account configuration</div></div><div class="panel" style="max-width:560px"><div class="panel-header"><span class="panel-title">API Key</span></div><div class="panel-body" style="padding:20px"><div class="form-group"><label>Key</label><div class="code-block" id="sKey">'+(k.key||'N/A')+'</div></div><div class="form-group"><label>Mode</label><div>'+(k.livemode?'<span class="badge badge-green">Live</span>':'<span class="badge badge-yellow">Test</span>')+'</div></div><button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById(\'sKey\').textContent);this.textContent=\'Copied!\'">Copy Key</button></div></div><div class="panel" style="max-width:560px"><div class="panel-header"><span class="panel-title">Balance</span></div><div class="panel-body" style="padding:20px"><div class="stat-grid"><div class="stat-card"><div class="stat-label">Available</div><div class="stat-value green">'+fmt(b.available)+'</div></div><div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value yellow">'+fmt(b.pending)+'</div></div></div></div></div><div class="panel" style="max-width:560px"><div class="panel-header"><span class="panel-title">API Base URL</span></div><div class="panel-body" style="padding:20px"><div class="code-block">'+location.origin+'/v1</div></div></div>';
+  });
+}
+
+if(T&&K)showApp();
+</script>
+</body>
+</html>
